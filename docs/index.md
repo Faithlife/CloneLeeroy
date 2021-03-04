@@ -1,7 +1,7 @@
-# ProjectName
+# CloneLeeroy
 
-[![NuGet](https://img.shields.io/nuget/v/ProjectName.svg)](https://www.nuget.org/packages/ProjectName)
+[![NuGet](https://img.shields.io/nuget/v/CloneLeeroy.svg)](https://www.nuget.org/packages/CloneLeeroy)
 
 ## Usage
 
-See the [reference documentation](ProjectName.md).
+See the [reference documentation](CloneLeeroy.md).

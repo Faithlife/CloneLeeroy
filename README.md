@@ -1,8 +1,7 @@
-# ProjectName
+# CloneLeeroy
 
-ProjectName class library.
+CloneLeeroy .NET tool.
 
-[![Build](https://github.com/Faithlife/RepoName/workflows/Build/badge.svg)](https://github.com/Faithlife/RepoName/actions?query=workflow%3ABuild) [![NuGet](https://img.shields.io/nuget/v/ProjectName.svg)](https://www.nuget.org/packages/ProjectName)
+[![Build](https://github.com/Faithlife/CloneLeeroy/workflows/Build/badge.svg)](https://github.com/Faithlife/CloneLeeroy/actions?query=workflow%3ABuild) [![NuGet](https://img.shields.io/nuget/v/CloneLeeroy.svg)](https://www.nuget.org/packages/CloneLeeroy)
 
-* [Documentation](https://faithlife.github.io/RepoName/)
 * [Release Notes](ReleaseNotes.md)
