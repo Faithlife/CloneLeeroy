@@ -9,6 +9,6 @@ return BuildRunner.Execute(args, build => build.AddDotNetTargets(
 		{
 			GitLogin = new GitLoginInfo("faithlifebuildbot", Environment.GetEnvironmentVariable("BUILD_BOT_PASSWORD") ?? ""),
 			GitAuthor = new GitAuthorInfo("Faithlife Build Bot", "faithlifebuildbot@users.noreply.github.com"),
-			SourceCodeUrl = "https://github.com/bgrainger/CloneLeeroy/tree/master/src",
+			SourceCodeUrl = "https://github.com/Faithlife/CloneLeeroy/tree/master/src",
 		},
 	}));
