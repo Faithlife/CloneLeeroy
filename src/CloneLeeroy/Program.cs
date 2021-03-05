@@ -79,7 +79,7 @@ namespace CloneLeeroy
 			}
 			catch (FileNotFoundException ex)
 			{
-				throw new LeeroyException($"Configuration '{project}' not found", 2, ex);
+				throw new LeeroyException($"Configuration '{project}' not found", exitCode: 92, innerException: ex);
 			}
 			catch (Exception ex)
 			{
@@ -88,9 +88,7 @@ namespace CloneLeeroy
 
 			var submodules = leeroyConfiguration?.Submodules;
 			if (submodules is null)
-			{
-				throw new LeeroyException($"No submodules defined in '{project}'", 3);
-			}
+				throw new LeeroyException($"No submodules defined in '{project}'", exitCode: 93);
 
 			//// TODO: CreateSolutionInfo.cs
 
@@ -99,19 +97,37 @@ namespace CloneLeeroy
 			foreach (var (name, branch) in submodules.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
 				submoduleTasks.Add((name, UpdateSubmodule(Directory.GetCurrentDirectory(), name, branch)));
 
+			var failures = new List<(string Name, LeeroyException Exception)>();
+
 			// write the status of each submodule (as they complete)
 			foreach (var (name, task) in submoduleTasks)
 			{
 				Console.Write("{0}...", name);
-				await task;
 				var success = true;
+				try
+				{
+					await task;
+				}
+				catch (LeeroyException ex)
+				{
+					failures.Add((name, ex));
+					success = false;
+				}
 				using (SetColor(success ? ConsoleColor.Green : ConsoleColor.Red))
 					Console.WriteLine(success ? "✔️" : "❌");
 			}
 
+			foreach (var failure in failures)
+			{
+				Console.Error.WriteLine();
+				using (SetColor(ConsoleColor.Red))
+					Console.Error.WriteLine($"{failure.Name}: {failure.Exception.Message}");
+				Console.Error.WriteLine(failure.Exception.ErrorOutput);
+			}
+
 			//// TODO: Save to .clonejs
 
-			return 0;
+			return failures.Count;
 		}
 
 		// Clones/updates the Build/Configuration repo in %LOCALAPPDATA%\CloneLeeroy\Configuration.
@@ -128,7 +144,7 @@ namespace CloneLeeroy
 			else
 			{
 				VerifySuccess(await RunGit(Path.GetDirectoryName(configurationPath)!, "clone", "git@git.faithlife.dev:Build/Configuration.git"),
-					"Couldn't clone Configuration repository", 1);
+					"Couldn't clone Configuration repository", 91);
 			}
 		}
 
@@ -167,8 +183,8 @@ namespace CloneLeeroy
 		private static string VerifySuccess((int ExitCode, string Stdout, string Stderr) gitResults, string message, int? exitCode = default)
 		{
 			if (gitResults.ExitCode != 0)
-				throw new LeeroyException(message + "\n" + gitResults.Stderr, exitCode);
-			return gitResults.Stdout;
+				throw new LeeroyException(message, errorOutput: gitResults.Stderr.Trim(), exitCode: exitCode);
+			return gitResults.Stdout.Trim();
 		}
 
 		private static async Task<(int ExitCode, string Stdout, string Stderr)> RunGit(string workingDirectory, params string[] arguments)
@@ -193,8 +209,8 @@ namespace CloneLeeroy
 
 			var output = new StringBuilder();
 			var error = new StringBuilder();
-			process.OutputDataReceived += (sender, args) => output.Append(args.Data);
-			process.ErrorDataReceived += (sender, args) => error.Append(args.Data);
+			process.OutputDataReceived += (sender, args) => output.Append(args.Data + Environment.NewLine);
+			process.ErrorDataReceived += (sender, args) => error.Append(args.Data + Environment.NewLine);
 
 			if (!process.Start())
 				throw new InvalidOperationException("Couldn't start git");
