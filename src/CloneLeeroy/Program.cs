@@ -40,17 +40,17 @@ namespace CloneLeeroy
 
 			var rootCommand = new RootCommand("Clones repositories required by a Leeroy config")
 			{
-				new Option<bool>(
-					"--save",
-					description: "Save the configuration to the current directory"),
+				new Option<bool>("--save", description: "Save the configuration to the current directory"),
+				new Option<bool>("--solution-info-csharp", description: "Create a SolutionInfo.cs file"),
+				new Option<bool>("--solution-info-header", description: "Create a SolutionInfo.h file"),
 				projectArgument,
 			};
 
-			rootCommand.Handler = CommandHandler.Create<bool, string>(async (bool save, string project) =>
+			rootCommand.Handler = CommandHandler.Create(async (bool save, bool solutionInfoCsharp, bool solutionInfoHeader, string project) =>
 			{
 				try
 				{
-					return await Run(save, project);
+					return await Run(save, solutionInfoCsharp, solutionInfoHeader, project);
 				}
 				catch (LeeroyException ex)
 				{
@@ -63,7 +63,7 @@ namespace CloneLeeroy
 			return await rootCommand.InvokeAsync(args);
 		}
 
-		private static async Task<int> Run(bool save, string project)
+		private static async Task<int> Run(bool save, bool solutionInfoCsharp, bool solutionInfoHeader, string project)
 		{
 			await UpdateConfiguration(ConfigurationPath);
 
@@ -90,7 +90,10 @@ namespace CloneLeeroy
 			if (submodules is null)
 				throw new LeeroyException($"No submodules defined in '{project}'", exitCode: 93);
 
-			//// TODO: CreateSolutionInfo.cs
+			if (solutionInfoCsharp)
+				await File.WriteAllTextAsync("SolutionInfo.cs", "using System.Reflection;\n\n[assembly: AssemblyVersion(\"9.99.0.0\")]\n[assembly: AssemblyCompany(\"Faithlife\")]\n[assembly: AssemblyCopyright(\"Copyright 2021 Faithlife\")]\n[assembly: AssemblyDescription(\"Local Build\")]\n");
+			if (solutionInfoHeader)
+				await File.WriteAllTextAsync("SolutionInfo.h", "#define ASSEMBLY_VERSION_MAJOR 9\n#define ASSEMBLY_VERSION_MINOR 99\n#define ASSEMBLY_VERSION_BUILD 0\n#define ASSEMBLY_VERSION_MAJOR_MINOR_BUILD 1337\n#define ASSEMBLY_VERSION_REVISION 0\n#define ASSEMBLY_VERSION_STRING \"9.99.0.0\"\n\n#define ASSEMBLY_COMPANY \"Faithlife\"\n#define ASSEMBLY_COPYRIGHT \"Copyright 2021 Faithlife\"\n");
 
 			// start processing each submodule in parallel
 			var submoduleTasks = new List<(string Name, Task Task)>();
