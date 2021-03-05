@@ -92,6 +92,8 @@ namespace CloneLeeroy
 				throw new LeeroyException($"No submodules defined in '{project}'", 3);
 			}
 
+			//// TODO: CreateSolutionInfo.cs
+
 			// start processing each submodule in parallel
 			var submoduleTasks = new List<(string Name, Task<bool> Task)>();
 			foreach (var (name, branch) in submodules.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
@@ -105,6 +107,8 @@ namespace CloneLeeroy
 				using (SetColor(success ? ConsoleColor.Green : ConsoleColor.Red))
 					Console.WriteLine(success ? "✔️" : "❌");
 			}
+
+			//// TODO: Save to .clonejs
 
 			return 0;
 		}
@@ -133,17 +137,24 @@ namespace CloneLeeroy
 		{
 			var nameParts = name.Split('/', 2);
 			var (user, repo) = (nameParts[0], nameParts[1]);
-			var url = $"git@git.faithlife.dev:{user}/{repo}.git";
+			var remoteUrl = $"git@git.faithlife.dev:{user}/{repo}.git";
 
 			var submodulePath = Path.Combine(folder, repo);
 			if (Directory.Exists(submodulePath))
 			{
+				//// TODO: currentUrl = git config --get remote.origin.url
+				//// TODO: if (currentUrl != remoteUrl) git remote rm origin; git remote add origin {remoteUrl}
+				//// TODO: git fetch origin
+				//// TODO: currentBranch = git symbolic-ref --short -q HEAD
+				//// TODO: if (branch != currentBranch) { git branch --list -q --no-color {branch} -> git fetch --tags; git checkout -B {branch} --track origin/{branch} }
+				//// TODO: git pull --rebase origin {branch}
+
 				var (code, _, _) = await RunGit(submodulePath, "pull", "--rebase", "origin", branch);
 				return code == 0;
 			}
 			else
 			{
-				var (code, _, _) = await RunGit(folder, "clone", "--recursive", "--branch", branch, url);
+				var (code, _, _) = await RunGit(folder, "clone", "--recursive", "--branch", branch, remoteUrl);
 				return code == 0;
 			}
 		}
