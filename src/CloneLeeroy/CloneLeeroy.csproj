@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
-    <Description>CloneLeeroy .NET Tool</Description>
+    <Description>Clones all the repositories specified by a Leeroy config</Description>
     <PackageTags></PackageTags>
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
