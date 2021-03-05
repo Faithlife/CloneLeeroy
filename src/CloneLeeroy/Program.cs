@@ -16,6 +16,10 @@ namespace CloneLeeroy
 		{
 			Console.OutputEncoding = Encoding.UTF8;
 
+			CloneLeeroyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CloneLeeroy");
+			Directory.CreateDirectory(CloneLeeroyPath);
+			ConfigurationPath = Path.Combine(CloneLeeroyPath, "Configuration");
+
 			// try to read a project name from a saved configuration file
 			string? projectName = null;
 			try
@@ -31,6 +35,8 @@ namespace CloneLeeroy
 			// make the 'project' argument have a default value if one was saved
 			var projectArgument = projectName is null ? new Argument<string>("project") : new Argument<string>("project", () => projectName);
 			projectArgument.Description = "Project name";
+			if (Directory.Exists(ConfigurationPath))
+				projectArgument.Suggestions.Add(new ProjectSuggestionSource(ConfigurationPath));
 
 			var rootCommand = new RootCommand("Clones repositories required by a Leeroy config")
 			{
@@ -59,15 +65,12 @@ namespace CloneLeeroy
 
 		private static async Task<int> Run(string project)
 		{
-			var cloneLeeroyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CloneLeeroy");
-			Directory.CreateDirectory(cloneLeeroyPath);
-			var configurationPath = Path.Combine(cloneLeeroyPath, "Configuration");
-			await UpdateConfiguration(configurationPath);
+			await UpdateConfiguration(ConfigurationPath);
 
 			Console.WriteLine("Cloning '{0}'", project);
 
 			// read Leeroy configuration
-			var configurationFilePath = Path.Combine(configurationPath, project + ".json");
+			var configurationFilePath = Path.Combine(ConfigurationPath, project + ".json");
 			LeeroyConfiguration? leeroyConfiguration;
 			try
 			{
@@ -186,5 +189,8 @@ namespace CloneLeeroy
 			Console.ForegroundColor = color;
 			return new(oldColor);
 		}
+
+		private static string CloneLeeroyPath { get; set; } = "";
+		private static string ConfigurationPath { get; set; } = "";
 	}
 }
