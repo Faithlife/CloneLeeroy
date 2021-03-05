@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -40,20 +40,31 @@ namespace CloneLeeroy
 				projectArgument,
 			};
 
-			rootCommand.Handler = CommandHandler.Create<bool, string>(Run);
+			rootCommand.Handler = CommandHandler.Create<bool, string>(async (bool save, string project) =>
+			{
+				try
+				{
+					return await Run(project);
+				}
+				catch (LeeroyException ex)
+				{
+					using (SetColor(ConsoleColor.Red))
+						Console.Error.WriteLine(ex.Message);
+					return ex.ExitCode ?? 99;
+				}
+			});
 
-			// Parse the incoming args and invoke the handler
 			return await rootCommand.InvokeAsync(args);
 		}
 
-		private static async Task<int> Run(bool save, string project)
+		private static async Task<int> Run(string project)
 		{
 			var cloneLeeroyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CloneLeeroy");
 			Directory.CreateDirectory(cloneLeeroyPath);
 			var configurationPath = Path.Combine(cloneLeeroyPath, "Configuration");
 			await UpdateConfiguration(configurationPath);
 
-			Console.Write("Cloning '{0}' ", project);
+			Console.WriteLine("Cloning '{0}'", project);
 
 			// read Leeroy configuration
 			var configurationFilePath = Path.Combine(configurationPath, project + ".json");
@@ -65,27 +76,20 @@ namespace CloneLeeroy
 			}
 			catch (FileNotFoundException)
 			{
-				using (SetColor(ConsoleColor.Red))
-					Console.Error.WriteLine("Configuration '{0}' not found", project);
-				return 1;
+				throw new LeeroyException($"Configuration '{project}' not found", 2);
 			}
 			catch (Exception ex)
 			{
-				using (SetColor(ConsoleColor.Red))
-					Console.Error.WriteLine("Error reading configuration '{0}': {1}", project, ex.Message);
-				return 99;
+				throw new LeeroyException($"Error reading configuration '{project}': {ex.Message}", innerException: ex);
 			}
 
 			var submodules = leeroyConfiguration?.Submodules;
 			if (submodules is null)
 			{
-				using (SetColor(ConsoleColor.Red))
-					Console.Error.WriteLine("No submodules defined in '{0}'", project);
-				return 2;
+				throw new LeeroyException($"No submodules defined in '{project}'", 3);
 			}
 
 			// start processing each submodule in parallel
-			Console.WriteLine();
 			var submoduleTasks = new List<(string Name, Task<bool> Task)>();
 			foreach (var (name, branch) in submodules.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
 				submoduleTasks.Add((name, UpdateSubmodule(Directory.GetCurrentDirectory(), name, branch)));
@@ -118,7 +122,7 @@ namespace CloneLeeroy
 			{
 				var (code, output, error) = await RunGit(Path.GetDirectoryName(configurationPath)!, "clone", "git@git.faithlife.dev:Build/Configuration.git");
 				if (code != 0)
-					throw new InvalidOperationException("Couldn't clone Configuration repository\n" + error);
+					throw new LeeroyException("Couldn't clone Configuration repository\n" + error, 1);
 			}
 		}
 
