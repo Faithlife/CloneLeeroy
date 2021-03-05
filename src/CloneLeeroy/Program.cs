@@ -77,9 +77,9 @@ namespace CloneLeeroy
 				using var stream = File.OpenRead(configurationFilePath);
 				leeroyConfiguration = await JsonSerializer.DeserializeAsync<LeeroyConfiguration>(stream);
 			}
-			catch (FileNotFoundException)
+			catch (FileNotFoundException ex)
 			{
-				throw new LeeroyException($"Configuration '{project}' not found", 2);
+				throw new LeeroyException($"Configuration '{project}' not found", 2, ex);
 			}
 			catch (Exception ex)
 			{
@@ -95,7 +95,7 @@ namespace CloneLeeroy
 			//// TODO: CreateSolutionInfo.cs
 
 			// start processing each submodule in parallel
-			var submoduleTasks = new List<(string Name, Task<bool> Task)>();
+			var submoduleTasks = new List<(string Name, Task Task)>();
 			foreach (var (name, branch) in submodules.OrderBy(x => x.Key, StringComparer.OrdinalIgnoreCase))
 				submoduleTasks.Add((name, UpdateSubmodule(Directory.GetCurrentDirectory(), name, branch)));
 
@@ -103,7 +103,8 @@ namespace CloneLeeroy
 			foreach (var (name, task) in submoduleTasks)
 			{
 				Console.Write("{0}...", name);
-				var success = await task;
+				await task;
+				var success = true;
 				using (SetColor(success ? ConsoleColor.Green : ConsoleColor.Red))
 					Console.WriteLine(success ? "✔️" : "❌");
 			}
@@ -118,8 +119,7 @@ namespace CloneLeeroy
 		{
 			if (Directory.Exists(configurationPath))
 			{
-				var (code, output, error) = await RunGit(configurationPath, "pull");
-				if (code != 0)
+				if (await RunGit(configurationPath, "pull") is not (0, _, _))
 				{
 					using (SetColor(ConsoleColor.Yellow))
 						await Console.Error.WriteLineAsync("WARNING: Couldn't pull latest changes to Configuration repository");
@@ -127,13 +127,12 @@ namespace CloneLeeroy
 			}
 			else
 			{
-				var (code, output, error) = await RunGit(Path.GetDirectoryName(configurationPath)!, "clone", "git@git.faithlife.dev:Build/Configuration.git");
-				if (code != 0)
-					throw new LeeroyException("Couldn't clone Configuration repository\n" + error, 1);
+				VerifySuccess(await RunGit(Path.GetDirectoryName(configurationPath)!, "clone", "git@git.faithlife.dev:Build/Configuration.git"),
+					"Couldn't clone Configuration repository", 1);
 			}
 		}
 
-		private static async Task<bool> UpdateSubmodule(string folder, string name, string branch)
+		private static async Task UpdateSubmodule(string folder, string name, string branch)
 		{
 			var nameParts = name.Split('/', 2);
 			var (user, repo) = (nameParts[0], nameParts[1]);
@@ -142,21 +141,34 @@ namespace CloneLeeroy
 			var submodulePath = Path.Combine(folder, repo);
 			if (Directory.Exists(submodulePath))
 			{
-				//// TODO: currentUrl = git config --get remote.origin.url
-				//// TODO: if (currentUrl != remoteUrl) git remote rm origin; git remote add origin {remoteUrl}
-				//// TODO: git fetch origin
-				//// TODO: currentBranch = git symbolic-ref --short -q HEAD
-				//// TODO: if (branch != currentBranch) { git branch --list -q --no-color {branch} -> git fetch --tags; git checkout -B {branch} --track origin/{branch} }
-				//// TODO: git pull --rebase origin {branch}
+				// check and reset remote URL for origin
+				var currentUrl = VerifySuccess(await RunGit(submodulePath, "config", "--get", "remote.origin.url"), "Couldn't read origin URL");
+				if (currentUrl != remoteUrl)
+				{
+					VerifySuccess(await RunGit(submodulePath, "remote", "rm", "origin"), "Couldn't remove remote origin");
+					VerifySuccess(await RunGit(submodulePath, "remote", "add", "origin", remoteUrl), "Couldn't add remote origin");
+				}
 
-				var (code, _, _) = await RunGit(submodulePath, "pull", "--rebase", "origin", branch);
-				return code == 0;
+				VerifySuccess(await RunGit(submodulePath, "fetch", "origin"), "Couldn't fetch origin");
+
+				// check current branch and switch if necessary
+				var currentBranch = VerifySuccess(await RunGit(submodulePath, "symbolic-ref", "--short", "-q", "HEAD"), "Couldn't get current branch");
+				if (currentBranch != branch)
+					VerifySuccess(await RunGit(submodulePath, "checkout", "-B", branch, "--track", $"origin/{branch}"), $"Couldn't checkout ${branch}");
+
+				VerifySuccess(await RunGit(submodulePath, "pull", "--rebase", "origin", branch), "Couldn't pull with rebase");
 			}
 			else
 			{
-				var (code, _, _) = await RunGit(folder, "clone", "--recursive", "--branch", branch, remoteUrl);
-				return code == 0;
+				VerifySuccess(await RunGit(folder, "clone", "--recursive", "--branch", branch, remoteUrl), $"Couldn't clone {remoteUrl}");
 			}
+		}
+
+		private static string VerifySuccess((int ExitCode, string Stdout, string Stderr) gitResults, string message, int? exitCode = default)
+		{
+			if (gitResults.ExitCode != 0)
+				throw new LeeroyException(message + "\n" + gitResults.Stderr, exitCode);
+			return gitResults.Stdout;
 		}
 
 		private static async Task<(int ExitCode, string Stdout, string Stderr)> RunGit(string workingDirectory, params string[] arguments)
