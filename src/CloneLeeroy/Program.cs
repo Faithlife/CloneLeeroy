@@ -96,7 +96,7 @@ namespace CloneLeeroy
 				Console.Write("{0}...", name);
 				var success = await task;
 				using (SetColor(success ? ConsoleColor.Green : ConsoleColor.Red))
-					Console.WriteLine(success ? "✓" : "❌");
+					Console.WriteLine(success ? "✔️" : "❌");
 			}
 
 			return 0;
