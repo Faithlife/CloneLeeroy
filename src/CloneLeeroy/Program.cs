@@ -24,7 +24,7 @@ namespace CloneLeeroy
 			string? projectName = null;
 			try
 			{
-				await using var stream = File.OpenRead(Path.Combine(Directory.GetCurrentDirectory(), ".clonejs"));
+				await using var stream = File.OpenRead(Path.Combine(Directory.GetCurrentDirectory(), c_configurationFileName));
 				var settings = await JsonSerializer.DeserializeAsync<SavedSettings>(stream);
 				projectName = settings?.ProjectName;
 			}
@@ -50,7 +50,7 @@ namespace CloneLeeroy
 			{
 				try
 				{
-					return await Run(project);
+					return await Run(save, project);
 				}
 				catch (LeeroyException ex)
 				{
@@ -63,7 +63,7 @@ namespace CloneLeeroy
 			return await rootCommand.InvokeAsync(args);
 		}
 
-		private static async Task<int> Run(string project)
+		private static async Task<int> Run(bool save, string project)
 		{
 			await UpdateConfiguration(ConfigurationPath);
 
@@ -125,7 +125,11 @@ namespace CloneLeeroy
 				Console.Error.WriteLine(failure.Exception.ErrorOutput);
 			}
 
-			//// TODO: Save to .clonejs
+			if (save)
+			{
+				await using var stream = File.Create(Path.Combine(Directory.GetCurrentDirectory(), c_configurationFileName));
+				await JsonSerializer.SerializeAsync(stream, new SavedSettings { ProjectName = project });
+			}
 
 			return failures.Count;
 		}
@@ -231,5 +235,7 @@ namespace CloneLeeroy
 
 		private static string CloneLeeroyPath { get; set; } = "";
 		private static string ConfigurationPath { get; set; } = "";
+
+		private const string c_configurationFileName = ".clonejs";
 	}
 }
