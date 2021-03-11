@@ -19,6 +19,7 @@ namespace CloneLeeroy
 			CloneLeeroyPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "CloneLeeroy");
 			Directory.CreateDirectory(CloneLeeroyPath);
 			ConfigurationPath = Path.Combine(CloneLeeroyPath, "Configuration");
+			ReadConfigurationTask = UpdateConfiguration(ConfigurationPath);
 
 			// try to read a project name from a saved configuration file
 			string? projectName = null;
@@ -35,8 +36,7 @@ namespace CloneLeeroy
 			// make the 'project' argument have a default value if one was saved
 			var projectArgument = projectName is null ? new Argument<string>("project") : new Argument<string>("project", () => projectName);
 			projectArgument.Description = "Project name";
-			if (Directory.Exists(ConfigurationPath))
-				projectArgument.Suggestions.Add(new ProjectSuggestionSource(ConfigurationPath));
+			projectArgument.Suggestions.Add(new ProjectSuggestionSource(ReadConfigurationTask, ConfigurationPath));
 
 			var rootCommand = new RootCommand("Clones repositories required by a Leeroy config")
 			{
@@ -65,7 +65,11 @@ namespace CloneLeeroy
 
 		private static async Task<int> Run(bool save, bool solutionInfoCsharp, bool solutionInfoHeader, string project)
 		{
-			await UpdateConfiguration(ConfigurationPath);
+			if (!await ReadConfigurationTask)
+			{
+				using (SetColor(ConsoleColor.Yellow))
+					await Console.Error.WriteLineAsync("WARNING: Couldn't pull latest changes to Configuration repository");
+			}
 
 			Console.WriteLine("Cloning '{0}'", project);
 
@@ -138,20 +142,17 @@ namespace CloneLeeroy
 		}
 
 		// Clones/updates the Build/Configuration repo in %LOCALAPPDATA%\CloneLeeroy\Configuration.
-		private static async Task UpdateConfiguration(string configurationPath)
+		private static async Task<bool> UpdateConfiguration(string configurationPath)
 		{
 			if (Directory.Exists(configurationPath))
 			{
-				if (await RunGit(configurationPath, "pull") is not (0, _, _))
-				{
-					using (SetColor(ConsoleColor.Yellow))
-						await Console.Error.WriteLineAsync("WARNING: Couldn't pull latest changes to Configuration repository");
-				}
+				return await RunGit(configurationPath, "pull") is (0, _, _);
 			}
 			else
 			{
 				VerifySuccess(await RunGit(Path.GetDirectoryName(configurationPath)!, "clone", "git@git.faithlife.dev:Build/Configuration.git"),
 					"Couldn't clone Configuration repository", 91);
+				return true;
 			}
 		}
 
@@ -238,6 +239,7 @@ namespace CloneLeeroy
 
 		private static string CloneLeeroyPath { get; set; } = "";
 		private static string ConfigurationPath { get; set; } = "";
+		private static Task<bool> ReadConfigurationTask { get; set; } = Task.FromResult(false);
 
 		private const string c_configurationFileName = ".clonejs";
 	}
