@@ -14,6 +14,14 @@ Install the dotnet global tool [from NuGet](https://www.nuget.org/packages/Clone
 dotnet tool install --global CloneLeeroy
 ```
 
+#### Upgrading from clone-leeroy (npm)
+
+If you were using the `clone-leeroy` npm package, uninstall it with:
+
+```
+npm uninstall -g clone-leeroy
+```
+
 ## Use
 
 In the parent folder of the cloned repositories, run:
