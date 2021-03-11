@@ -45,6 +45,7 @@ namespace CloneLeeroy
 				new Option<bool>("--solution-info-header", description: "Create a SolutionInfo.h file"),
 				projectArgument,
 			};
+			rootCommand.Name = "clone-leeroy";
 
 			rootCommand.Handler = CommandHandler.Create(async (bool save, bool solutionInfoCsharp, bool solutionInfoHeader, string project) =>
 			{
