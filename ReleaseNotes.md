@@ -1,5 +1,9 @@
 # Release Notes
 
+### 0.4.0
+
+* Fix `ArgumentOutOfRangeException` reading `git` process output.
+
 ## 0.3.0
 
 * Usage instructions show `clone-leeroy` as the program name.
