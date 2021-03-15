@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -217,23 +218,12 @@ namespace CloneLeeroy
 				process.StartInfo.ArgumentList.Add(argument);
 
 			var output = new StringBuilder();
-			var error = new StringBuilder();
 			using var outputDone = new ManualResetEvent(initialState: false);
+			process.OutputDataReceived += CreateOutputHandler(output, outputDone);
+
+			var error = new StringBuilder();
 			using var errorDone = new ManualResetEvent(initialState: false);
-			process.OutputDataReceived += (sender, args) =>
-			{
-				if (args.Data is not null)
-					output.Append(args.Data + Environment.NewLine);
-				else
-					outputDone.Set();
-			};
-			process.ErrorDataReceived += (sender, args) =>
-			{
-				if (args.Data is not null)
-					error.Append(args.Data + Environment.NewLine);
-				else
-					errorDone.Set();
-			};
+			process.ErrorDataReceived += CreateOutputHandler(error, errorDone);
 
 			if (!process.Start())
 				throw new InvalidOperationException("Couldn't start git");
@@ -246,6 +236,15 @@ namespace CloneLeeroy
 			errorDone.WaitOne();
 
 			return (process.ExitCode, output.ToString(), error.ToString());
+
+			static DataReceivedEventHandler CreateOutputHandler(StringBuilder destination, EventWaitHandle waitHandle) =>
+				(sender, args) =>
+				{
+					if (args.Data is not null)
+						destination.Append(args.Data + Environment.NewLine);
+					else
+						waitHandle.Set();
+				};
 		}
 
 		private static ScopedConsoleColor SetColor(ConsoleColor color)
