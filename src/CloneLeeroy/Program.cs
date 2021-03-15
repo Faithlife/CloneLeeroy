@@ -215,10 +215,19 @@ namespace CloneLeeroy
 			foreach (var argument in arguments)
 				process.StartInfo.ArgumentList.Add(argument);
 
+			var lck = new object();
 			var output = new StringBuilder();
 			var error = new StringBuilder();
-			process.OutputDataReceived += (sender, args) => output.Append(args.Data + Environment.NewLine);
-			process.ErrorDataReceived += (sender, args) => error.Append(args.Data + Environment.NewLine);
+			process.OutputDataReceived += (sender, args) =>
+			{
+				lock (lck)
+					output.Append(args.Data + Environment.NewLine);
+			};
+			process.ErrorDataReceived += (sender, args) =>
+			{
+				lock (lck)
+					error.Append(args.Data + Environment.NewLine);
+			};
 
 			if (!process.Start())
 				throw new InvalidOperationException("Couldn't start git");
@@ -227,7 +236,8 @@ namespace CloneLeeroy
 
 			await process.WaitForExitAsync();
 
-			return (process.ExitCode, output.ToString(), error.ToString());
+			lock (lck)
+				return (process.ExitCode, output.ToString(), error.ToString());
 		}
 
 		private static ScopedConsoleColor SetColor(ConsoleColor color)
