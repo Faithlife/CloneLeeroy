@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CloneLeeroy
@@ -215,18 +216,23 @@ namespace CloneLeeroy
 			foreach (var argument in arguments)
 				process.StartInfo.ArgumentList.Add(argument);
 
-			var lck = new object();
 			var output = new StringBuilder();
 			var error = new StringBuilder();
+			using var outputDone = new ManualResetEvent(initialState: false);
+			using var errorDone = new ManualResetEvent(initialState: false);
 			process.OutputDataReceived += (sender, args) =>
 			{
-				lock (lck)
+				if (args.Data is not null)
 					output.Append(args.Data + Environment.NewLine);
+				else
+					outputDone.Set();
 			};
 			process.ErrorDataReceived += (sender, args) =>
 			{
-				lock (lck)
+				if (args.Data is not null)
 					error.Append(args.Data + Environment.NewLine);
+				else
+					errorDone.Set();
 			};
 
 			if (!process.Start())
@@ -236,8 +242,10 @@ namespace CloneLeeroy
 
 			await process.WaitForExitAsync();
 
-			lock (lck)
-				return (process.ExitCode, output.ToString(), error.ToString());
+			outputDone.WaitOne();
+			errorDone.WaitOne();
+
+			return (process.ExitCode, output.ToString(), error.ToString());
 		}
 
 		private static ScopedConsoleColor SetColor(ConsoleColor color)
