@@ -22,6 +22,14 @@ If you were using the `clone-leeroy` npm package, uninstall it with:
 npm uninstall -g clone-leeroy
 ```
 
+The npm `clone-leeroy` would always create a `SolutionInfo.cs` and `SolutionInfo.h` file whenever it ran.
+Since most projects are moving away from that and instead using `Directory.Build.props`, that legacy
+behavior is now opt-in. To create those files (e.g., for a first-time clone), run
+
+```
+clone-leeroy --solution-info-csharp --solution-info-header [ProjectName]
+```
+
 ## Use
 
 In the parent folder of the cloned repositories, run:
