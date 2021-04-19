@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
@@ -183,6 +183,7 @@ namespace CloneLeeroy
 					VerifySuccess(await RunGit(submodulePath, "checkout", "-B", branch, "--track", $"origin/{branch}"), $"Couldn't checkout ${branch}");
 
 				VerifySuccess(await RunGit(submodulePath, "pull", "--rebase", "origin", branch), "Couldn't pull with rebase");
+				VerifySuccess(await RunGit(submodulePath, "submodule", "update", "--init", "--recursive"), "Couldn't update submodules");
 			}
 			else
 			{

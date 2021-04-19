@@ -1,5 +1,9 @@
 # Release Notes
 
+### 0.5.0
+
+* Update git submodules after pulling the latest code.
+
 ### 0.4.0
 
 * Fix `ArgumentOutOfRangeException` reading `git` process output.
