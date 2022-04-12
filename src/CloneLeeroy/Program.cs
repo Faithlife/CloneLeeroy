@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -12,6 +13,7 @@ using System.Threading.Tasks;
 
 namespace CloneLeeroy
 {
+	[SuppressMessage("Usage", "CA1849:Call async methods when in an async method", Justification = "Console.Error sync I/O.")]
 	public static class Program
 	{
 		public static async Task<int> Main(string[] args)
