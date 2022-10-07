@@ -96,9 +96,9 @@ namespace CloneLeeroy
 				throw new LeeroyException($"No submodules defined in '{project}'", exitCode: 93);
 
 			if (solutionInfoCsharp)
-				await File.WriteAllTextAsync("SolutionInfo.cs", "using System.Reflection;\n\n[assembly: AssemblyVersion(\"9.99.0.0\")]\n[assembly: AssemblyCompany(\"Faithlife\")]\n[assembly: AssemblyCopyright(\"Copyright 2021 Faithlife\")]\n[assembly: AssemblyDescription(\"Local Build\")]\n");
+				await File.WriteAllTextAsync("SolutionInfo.cs", "using System.Reflection;\n\n[assembly: AssemblyVersion(\"99.99.0.0\")]\n[assembly: AssemblyCompany(\"Faithlife\")]\n[assembly: AssemblyCopyright(\"Copyright 2021 Faithlife\")]\n[assembly: AssemblyDescription(\"Local Build\")]\n");
 			if (solutionInfoHeader)
-				await File.WriteAllTextAsync("SolutionInfo.h", "#define ASSEMBLY_VERSION_MAJOR 9\n#define ASSEMBLY_VERSION_MINOR 99\n#define ASSEMBLY_VERSION_BUILD 0\n#define ASSEMBLY_VERSION_MAJOR_MINOR_BUILD 1337\n#define ASSEMBLY_VERSION_REVISION 0\n#define ASSEMBLY_VERSION_STRING \"9.99.0.0\"\n\n#define ASSEMBLY_COMPANY \"Faithlife\"\n#define ASSEMBLY_COPYRIGHT \"Copyright 2021 Faithlife\"\n");
+				await File.WriteAllTextAsync("SolutionInfo.h", "#define ASSEMBLY_VERSION_MAJOR 99\n#define ASSEMBLY_VERSION_MINOR 99\n#define ASSEMBLY_VERSION_BUILD 0\n#define ASSEMBLY_VERSION_MAJOR_MINOR_BUILD 1337\n#define ASSEMBLY_VERSION_REVISION 0\n#define ASSEMBLY_VERSION_STRING \"99.99.0.0\"\n\n#define ASSEMBLY_COMPANY \"Faithlife\"\n#define ASSEMBLY_COPYRIGHT \"Copyright 2021 Faithlife\"\n");
 
 			// start processing each submodule in parallel
 			var submoduleTasks = new List<(string Name, Task Task)>();
