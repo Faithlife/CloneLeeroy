@@ -1,5 +1,9 @@
 # Release Notes
 
+## 0.7.0
+
+* Bump major version in `SolutionInfo` to `99`.
+
 ## 0.6.0
 
 * Add .NET 6.0 support.
